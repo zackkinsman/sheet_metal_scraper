@@ -34,12 +34,18 @@ def search_tenders(driver, keywords):
 
         time.sleep(random.uniform(3, 6))  # simulate human interaction and avoid bot detection
 
+        # Click the search button after entering the keyword
+        search_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-twig-selector='search']"))
+        )
+        search_button.click()
+
         # Allow results to load before moving to the next keyword
         time.sleep(random.uniform(5, 10))
 
 def main():
     driver = setup_driver()
-    keywords = load_keywords("Tender_Keywords.csv")
+    keywords = load_keywords("../Tender_Keywords.csv")
 
     try:
         search_tenders(driver, keywords)
