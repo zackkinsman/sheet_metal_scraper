@@ -19,5 +19,15 @@ def create_tables():
     conn.commit()
     conn.close()
 
+def insert_tender(title, deadline, link):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO tenders (title, deadline, link)
+        VALUES (?, ?, ?)
+    """, (title, deadline, link))
+    conn.commit()
+    conn.close()
+
 if __name__ == "__main__":
     create_tables()
