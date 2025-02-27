@@ -11,21 +11,25 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tenders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            deadline TEXT,
-            link TEXT
+            title TEXT NOT NULL,
+            description TEXT,
+            date_posted TEXT,
+            open_date TEXT,
+            closing_date TEXT,
+            link TEXT,
+            status TEXT DEFAULT 'New'
         )
     """)
     conn.commit()
     conn.close()
 
-def insert_tender(title, deadline, link):
+def insert_tender(title, description, date_posted, open_date, closing_date, link, status="New"):
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO tenders (title, deadline, link)
-        VALUES (?, ?, ?)
-    """, (title, deadline, link))
+        INSERT INTO tenders (title, description, date_posted, open_date, closing_date, link, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (title, description, date_posted, open_date, closing_date, link, status))
     conn.commit()
     conn.close()
 
