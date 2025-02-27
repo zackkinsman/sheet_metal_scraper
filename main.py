@@ -1,13 +1,8 @@
-from ui.tender_backend import run_ui  # PyQt app
-from scraper.scraper import scrape_tenders  # Selenium scraper
-import threading
+# main.py
+from tender_backend import run_ui
 
 def main():
-    # Run the scraper in a separate thread
-    scraper_thread = threading.Thread(target=scrape_tenders, daemon=True)
-    scraper_thread.start()
-
-    # Launch UI
+    # For the POC, we can ignore the scraper thread
     run_ui()
 
 if __name__ == "__main__":
