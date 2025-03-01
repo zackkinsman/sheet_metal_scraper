@@ -1,5 +1,4 @@
-# filepath: /C:/Users/Zack/Desktop/School stuff/Sheet_Metal_Project/sheet_metal_scraper/scraper/scrapy_project/pipelines.py
-
+# pipelines.py
 import sqlite3
 
 class TenderPipeline:
@@ -8,13 +7,14 @@ class TenderPipeline:
         self.cursor = self.conn.cursor()
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS tenders (
-                id INTEGER PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT,
                 description TEXT,
-                date TEXT,
+                date_posted TEXT,
                 open_date TEXT,
-                close_date TEXT,
-                link TEXT
+                closing_date TEXT,
+                link TEXT,
+                status TEXT DEFAULT 'New'
             )
         ''')
 
@@ -24,6 +24,15 @@ class TenderPipeline:
 
     def process_item(self, item, spider):
         self.cursor.execute('''
-            INSERT INTO tenders (title, description, date, open_date, close_date, link) VALUES (?, ?, ?, ?, ?, ?)
-        ''', (item['title'], item['description'], item['date'], item['open_date'], item['close_date'], item['link']))
+            INSERT INTO tenders (title, description, date_posted, open_date, closing_date, link, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            item['title'], 
+            item['description'], 
+            item.get('date_posted', item.get('date')), 
+            item.get('open_date', ""), 
+            item.get('closing_date', item.get('close_date', "")), 
+            item['link'],
+            "New"
+        ))
         return item

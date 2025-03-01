@@ -59,43 +59,13 @@
      </item>
     </layout>
    </widget>
-   <widget class="QTableWidget" name="TendeList">
-    <property name="geometry">
-     <rect>
-      <x>160</x>
-      <y>0</y>
-      <width>491</width>
-      <height>581</height>
-     </rect>
-    </property>
-    <column>
-     <property name="text">
-      <string>Name</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
-      <string>Date Posted</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
-      <string>Closing Date</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
-      <string>Status</string>
-     </property>
-    </column>
-   </widget>
    <widget class="QGroupBox" name="TenderDetails">
     <property name="geometry">
      <rect>
       <x>660</x>
       <y>10</y>
       <width>282</width>
-      <height>307</height>
+      <height>451</height>
      </rect>
     </property>
     <property name="title">
@@ -167,6 +137,29 @@
      <string>Export to PDF</string>
     </property>
    </widget>
+   <widget class="QTableView" name="TenderList">
+    <property name="geometry">
+     <rect>
+      <x>170</x>
+      <y>20</y>
+      <width>471</width>
+      <height>511</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="AddTenderButton">
+    <property name="geometry">
+     <rect>
+      <x>450</x>
+      <y>590</y>
+      <width>75</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Add Tender</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -174,7 +167,7 @@
      <x>0</x>
      <y>0</y>
      <width>943</width>
-     <height>33</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>

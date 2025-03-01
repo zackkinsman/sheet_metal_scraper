@@ -1,11 +1,10 @@
-# filepath: /C:/Users/Zack/Desktop/School stuff/Sheet_Metal_Project/sheet_metal_scraper/scraper/scrapy_project/items.py
-
+# items.py
 import scrapy
 
 class TenderItem(scrapy.Item):
     title = scrapy.Field()
     description = scrapy.Field()
-    date = scrapy.Field()
+    date_posted = scrapy.Field()    # Renamed from 'date'
     open_date = scrapy.Field()
-    close_date = scrapy.Field()
+    closing_date = scrapy.Field()    # Renamed from 'close_date'
     link = scrapy.Field()

@@ -18,8 +18,7 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QApplication, QFormLayout, QFrame, QGroupBox,
     QHeaderView, QLabel, QLineEdit, QMainWindow,
     QMenuBar, QPushButton, QSizePolicy, QStatusBar,
-    QTableWidget, QTableWidgetItem, QTextEdit, QVBoxLayout,
-    QWidget)
+    QTableView, QTextEdit, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -55,22 +54,9 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.pushButton_3)
 
-        self.TendeList = QTableWidget(self.NavMenu)
-        if (self.TendeList.columnCount() < 4):
-            self.TendeList.setColumnCount(4)
-        __qtablewidgetitem = QTableWidgetItem()
-        self.TendeList.setHorizontalHeaderItem(0, __qtablewidgetitem)
-        __qtablewidgetitem1 = QTableWidgetItem()
-        self.TendeList.setHorizontalHeaderItem(1, __qtablewidgetitem1)
-        __qtablewidgetitem2 = QTableWidgetItem()
-        self.TendeList.setHorizontalHeaderItem(2, __qtablewidgetitem2)
-        __qtablewidgetitem3 = QTableWidgetItem()
-        self.TendeList.setHorizontalHeaderItem(3, __qtablewidgetitem3)
-        self.TendeList.setObjectName(u"TendeList")
-        self.TendeList.setGeometry(QRect(160, 0, 491, 581))
         self.TenderDetails = QGroupBox(self.NavMenu)
         self.TenderDetails.setObjectName(u"TenderDetails")
-        self.TenderDetails.setGeometry(QRect(660, 10, 282, 307))
+        self.TenderDetails.setGeometry(QRect(660, 10, 282, 451))
         self.formLayout = QFormLayout(self.TenderDetails)
         self.formLayout.setObjectName(u"formLayout")
         self.TenderName = QLabel(self.TenderDetails)
@@ -102,10 +88,16 @@ class Ui_MainWindow(object):
         self.ExportToPDFButton = QPushButton(self.NavMenu)
         self.ExportToPDFButton.setObjectName(u"ExportToPDFButton")
         self.ExportToPDFButton.setGeometry(QRect(360, 590, 81, 24))
+        self.TenderList = QTableView(self.NavMenu)
+        self.TenderList.setObjectName(u"TenderList")
+        self.TenderList.setGeometry(QRect(170, 20, 471, 511))
+        self.AddTenderButton = QPushButton(self.NavMenu)
+        self.AddTenderButton.setObjectName(u"AddTenderButton")
+        self.AddTenderButton.setGeometry(QRect(450, 590, 75, 24))
         MainWindow.setCentralWidget(self.NavMenu)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 943, 33))
+        self.menubar.setGeometry(QRect(0, 0, 943, 22))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -121,14 +113,6 @@ class Ui_MainWindow(object):
         self.Tender_Button.setText(QCoreApplication.translate("MainWindow", u"Tenders", None))
         self.AI_Analysis_Button.setText(QCoreApplication.translate("MainWindow", u"AI Analysis", None))
         self.pushButton_3.setText(QCoreApplication.translate("MainWindow", u"BOM and Cost Estimator", None))
-        ___qtablewidgetitem = self.TendeList.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"Name", None));
-        ___qtablewidgetitem1 = self.TendeList.horizontalHeaderItem(1)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"Date Posted", None));
-        ___qtablewidgetitem2 = self.TendeList.horizontalHeaderItem(2)
-        ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"Closing Date", None));
-        ___qtablewidgetitem3 = self.TendeList.horizontalHeaderItem(3)
-        ___qtablewidgetitem3.setText(QCoreApplication.translate("MainWindow", u"Status", None));
         self.TenderDetails.setTitle(QCoreApplication.translate("MainWindow", u"GroupBox", None))
         self.TenderName.setText(QCoreApplication.translate("MainWindow", u"Tender Name", None))
         self.Date.setText(QCoreApplication.translate("MainWindow", u"Date", None))
@@ -136,5 +120,6 @@ class Ui_MainWindow(object):
         self.ScrapeTendersButton.setText(QCoreApplication.translate("MainWindow", u"Scrape Tenders", None))
         self.MarkAsInterestedButton.setText(QCoreApplication.translate("MainWindow", u"Mark as Interested", None))
         self.ExportToPDFButton.setText(QCoreApplication.translate("MainWindow", u"Export to PDF", None))
+        self.AddTenderButton.setText(QCoreApplication.translate("MainWindow", u"Add Tender", None))
     # retranslateUi
 
