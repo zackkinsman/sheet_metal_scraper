@@ -1,15 +1,13 @@
-# add_tender_dialog.py
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QDateEdit, QPushButton, QComboBox
 from PySide6.QtCore import Qt
-import sqlite3
+from db.database import create_connection
 
 class AddTenderDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Add New Tender")
-        self.setFixedSize(400, 300)  # Set a fixed size for the modal
+        self.setFixedSize(400, 300)
 
-        # Layout
         layout = QVBoxLayout()
 
         # Title Input
@@ -24,8 +22,8 @@ class AddTenderDialog(QDialog):
         layout.addWidget(self.desc_label)
         layout.addWidget(self.desc_input)
 
-        # Date Posted Picker
-        self.date_label = QLabel("Date Posted:")
+        # Open/Amendment Date Picker (stored as date_posted)
+        self.date_label = QLabel("Open/Amendment Date:")
         self.date_picker = QDateEdit()
         self.date_picker.setCalendarPopup(True)
         layout.addWidget(self.date_label)
@@ -53,7 +51,6 @@ class AddTenderDialog(QDialog):
         self.setLayout(layout)
 
     def add_tender_to_db(self):
-        """Insert the new tender into the database."""
         title = self.title_input.text()
         description = self.desc_input.text()
         date_posted = self.date_picker.date().toString("yyyy-MM-dd")
@@ -61,15 +58,16 @@ class AddTenderDialog(QDialog):
         status = self.status_combo.currentText()
 
         if title and description:
-            conn = sqlite3.connect("tenders.db")
+            conn = create_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO tenders (title, description, date_posted, open_date, closing_date, link, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (title, description, date_posted, "", closing_date, "", status))
+                INSERT INTO tenders (title, description, date_posted, closing_date, link, status)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (title, description, date_posted, closing_date, "", status))
             conn.commit()
+            cursor.close()
             conn.close()
 
-            self.accept()  # Close dialog after successful insertion
+            self.accept()  # Close dialog on success
         else:
             print("Title and description are required.")
