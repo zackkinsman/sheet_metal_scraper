@@ -1,75 +1,84 @@
 import sys
 import os
-from urllib.parse import urlparse
+import pandas as pd
 from PySide6.QtWidgets import QApplication, QMainWindow, QTableView, QDialog
-from PySide6.QtSql import QSqlDatabase, QSqlTableModel
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QStandardItemModel, QStandardItem
 from UI.tender_ui import Ui_MainWindow 
-from UI.add_tender_dialog import AddTenderDialog 
-from dotenv import load_dotenv
-
-load_dotenv()
+from UI.add_tender_dialog import AddTenderDialog
 
 class TenderBackend(QMainWindow):
     def __init__(self):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-
-        # Setup PostgreSQL Database Connection using the QPSQL driver
-        self.db = QSqlDatabase.addDatabase("QPSQL")
-        database_url = os.getenv("DATABASE_URL")
-        if database_url:
-            result = urlparse(database_url)
-            self.db.setHostName(result.hostname)
-            self.db.setPort(result.port)
-            self.db.setDatabaseName(result.path.lstrip("/"))
-            self.db.setUserName(result.username)
-            self.db.setPassword(result.password)
-        if not self.db.open():
-            print("Error: Unable to open database")
-            sys.exit(1)
-
-        # Setup Table Model for Direct DB Access (table: id, title, description, date_posted, closing_date, link, status)
-        self.model = QSqlTableModel(self, self.db)
-        self.model.setTable("tenders")
-        self.model.select()
-        self.model.setHeaderData(1, Qt.Horizontal, "Title")
-        self.model.setHeaderData(2, Qt.Horizontal, "Description")
-        self.model.setHeaderData(3, Qt.Horizontal, "Open/Amendment Date")
-        self.model.setHeaderData(4, Qt.Horizontal, "Closing Date")
-        self.model.setHeaderData(5, Qt.Horizontal, "Link")
-        self.model.setHeaderData(6, Qt.Horizontal, "Status")
-
+        
+        # CSV file path (stored in the project root)
+        self.csv_file = "filtered_tenders.csv"
+        # Load CSV data into a QStandardItemModel
+        self.model = self.load_csv_model()
         self.ui.TenderList.setModel(self.model)
         self.ui.TenderList.setSelectionBehavior(QTableView.SelectRows)
         self.ui.TenderList.setSelectionMode(QTableView.SingleSelection)
-        self.ui.TenderList.setColumnHidden(0, True)  # Hide the ID column
+        # Hide the ID column (assumed to be column index 0)
+        self.ui.TenderList.setColumnHidden(0, True)
 
         # Connect UI Buttons
-        self.ui.MarkAsInterestedButton.clicked.connect(self.mark_selected_tender)
-        self.ui.ExportToPDFButton.clicked.connect(lambda: print("Export to PDF functionality to be implemented."))
+        # The ExportToPDFButton functionality is a placeholder for now.
+        self.ui.ExportToPDFButton.clicked.connect(self.export_to_pdf)
         self.ui.AddTenderButton.clicked.connect(self.open_add_tender_dialog)
 
-    def mark_selected_tender(self):
-        selected_rows = self.ui.TenderList.selectionModel().selectedRows()
-        if selected_rows:
-            row = selected_rows[0].row()
-            tender_id = self.model.record(row).value("id")
-
-            record = self.model.record(row)
-            record.setValue("status", "Interested")
-            self.model.setRecord(row, record)
-            self.model.submitAll()
-
-            print(f"Marked Tender ID {tender_id} as 'Interested'.")
+    def load_csv_model(self):
+        """
+        Loads the CSV file into a QStandardItemModel.
+        If the CSV doesn't exist, it creates an empty CSV with the proper headers.
+        """
+        # If the file doesn't exist, create it with proper headers.
+        if not os.path.exists(self.csv_file):
+            df = pd.DataFrame(columns=["id", "title", "description", "date_posted", "closing_date", "link", "status"])
+            df.to_csv(self.csv_file, index=False)
         else:
-            print("No tender selected.")
+            df = pd.read_csv(self.csv_file)
+        
+        model = QStandardItemModel()
+        headers = list(df.columns)
+        model.setColumnCount(len(headers))
+        model.setHorizontalHeaderLabels(headers)
+        for _, row in df.iterrows():
+            items = [QStandardItem(str(row[col])) for col in headers]
+            model.appendRow(items)
+        return model
+
+    def save_model_to_csv(self):
+        """
+        Saves the current data from the QStandardItemModel back to the CSV file.
+        """
+        rows = self.model.rowCount()
+        cols = self.model.columnCount()
+        headers = [self.model.headerData(col, Qt.Horizontal) for col in range(cols)]
+        data = []
+        for row in range(rows):
+            row_data = []
+            for col in range(cols):
+                item = self.model.item(row, col)
+                row_data.append(item.text() if item is not None else "")
+            data.append(row_data)
+        df = pd.DataFrame(data, columns=headers)
+        df.to_csv(self.csv_file, index=False)
+
+    def export_to_pdf(self):
+        # Placeholder for Export to PDF functionality
+        print("Export to PDF functionality to be implemented.")
 
     def open_add_tender_dialog(self):
+        """
+        Opens the Add Tender dialog. On success, reloads the CSV model and refreshes the UI.
+        """
         dialog = AddTenderDialog(self)
         if dialog.exec() == QDialog.Accepted:
-            self.model.select()  # Refresh the table
+            # After adding a tender, reload the model.
+            self.model = self.load_csv_model()
+            self.ui.TenderList.setModel(self.model)
 
 def run_ui():
     app = QApplication(sys.argv)

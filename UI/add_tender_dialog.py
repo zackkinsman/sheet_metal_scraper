@@ -1,6 +1,8 @@
+import os
+import pandas as pd
+import uuid
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QDateEdit, QPushButton, QComboBox
 from PySide6.QtCore import Qt
-from db.database import create_connection
 
 class AddTenderDialog(QDialog):
     def __init__(self, parent=None):
@@ -45,12 +47,17 @@ class AddTenderDialog(QDialog):
 
         # Submit Button
         self.submit_button = QPushButton("Add Tender")
-        self.submit_button.clicked.connect(self.add_tender_to_db)
+        self.submit_button.clicked.connect(self.add_tender_to_csv)
         layout.addWidget(self.submit_button)
 
         self.setLayout(layout)
 
-    def add_tender_to_db(self):
+    def add_tender_to_csv(self):
+        """
+        Reads the input fields and appends a new row to the CSV file.
+        Manually added tenders are given a unique hexadecimal ID to distinguish them
+        from scraped tenders.
+        """
         title = self.title_input.text()
         description = self.desc_input.text()
         date_posted = self.date_picker.date().toString("yyyy-MM-dd")
@@ -58,16 +65,27 @@ class AddTenderDialog(QDialog):
         status = self.status_combo.currentText()
 
         if title and description:
-            conn = create_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO tenders (title, description, date_posted, closing_date, link, status)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (title, description, date_posted, closing_date, "", status))
-            conn.commit()
-            cursor.close()
-            conn.close()
+            file_path = "filtered_tenders.csv"
+            if os.path.exists(file_path):
+                df = pd.read_csv(file_path)
+            else:
+                df = pd.DataFrame(columns=["id", "title", "description", "date_posted", "closing_date", "link", "status"])
+            
+            # Generate a unique hex ID for the manually added tender
+            new_id = uuid.uuid4().hex
 
+            new_row = {
+                "id": new_id,
+                "title": title,
+                "description": description,
+                "date_posted": date_posted,
+                "closing_date": closing_date,
+                "link": "",
+                "status": status
+            }
+            # Append the new row and save back to CSV
+            df = df.append(new_row, ignore_index=True)
+            df.to_csv(file_path, index=False)
             self.accept()  # Close dialog on success
         else:
             print("Title and description are required.")
