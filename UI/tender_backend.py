@@ -1,11 +1,14 @@
 import sys
 import os
 import pandas as pd
-from PySide6.QtWidgets import QApplication, QMainWindow, QTableView, QDialog
+import subprocess
+from PySide6.QtWidgets import QApplication, QMainWindow, QTableView, QDialog, QFileDialog
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from UI.tender_ui import Ui_MainWindow 
 from UI.add_tender_dialog import AddTenderDialog
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 class TenderBackend(QMainWindow):
     def __init__(self):
@@ -24,22 +27,15 @@ class TenderBackend(QMainWindow):
         self.ui.TenderList.setColumnHidden(0, True)
 
         # Connect UI Buttons
-        # The ExportToPDFButton functionality is a placeholder for now.
         self.ui.ExportToPDFButton.clicked.connect(self.export_to_pdf)
         self.ui.AddTenderButton.clicked.connect(self.open_add_tender_dialog)
+        self.ui.ScrapeTendersButton.clicked.connect(self.scrape_tenders)
 
     def load_csv_model(self):
         """
         Loads the CSV file into a QStandardItemModel.
-        If the CSV doesn't exist, it creates an empty CSV with the proper headers.
         """
-        # If the file doesn't exist, create it with proper headers.
-        if not os.path.exists(self.csv_file):
-            df = pd.DataFrame(columns=["id", "title", "description", "date_posted", "closing_date", "link", "status"])
-            df.to_csv(self.csv_file, index=False)
-        else:
-            df = pd.read_csv(self.csv_file)
-        
+        df = pd.read_csv(self.csv_file)
         model = QStandardItemModel()
         headers = list(df.columns)
         model.setColumnCount(len(headers))
@@ -67,8 +63,18 @@ class TenderBackend(QMainWindow):
         df.to_csv(self.csv_file, index=False)
 
     def export_to_pdf(self):
-        # Placeholder for Export to PDF functionality
-        print("Export to PDF functionality to be implemented.")
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getSaveFileName(self, "Save PDF", "", "PDF Files (*.pdf);;All Files (*)", options=options)
+        if file_path:
+            c = canvas.Canvas(file_path, pagesize=letter)
+            width, height = letter
+            c.drawString(100, height - 100, "Tender List")
+            y = height - 150
+            for row in range(self.model.rowCount()):
+                text = " | ".join([self.model.item(row, col).text() for col in range(self.model.columnCount())])
+                c.drawString(100, y, text)
+                y -= 20
+            c.save()
 
     def open_add_tender_dialog(self):
         """
@@ -79,6 +85,18 @@ class TenderBackend(QMainWindow):
             # After adding a tender, reload the model.
             self.model = self.load_csv_model()
             self.ui.TenderList.setModel(self.model)
+
+    # def scrape_tenders(self):
+    #     """
+    #     Calls the scraper script to scrape tenders and update the CSV file.
+    #     """
+    #     try:
+    #         subprocess.run(["python", "scraper/scraper.py"], check=True)
+    #         # Reload the model after scraping
+    #         self.model = self.load_csv_model()
+    #         self.ui.TenderList.setModel(self.model)
+    #     except subprocess.CalledProcessError as e:
+    #         print(f"Error occurred while scraping tenders: {e}")
 
 def run_ui():
     app = QApplication(sys.argv)

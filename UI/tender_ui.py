@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'Tender.ui'
+## Form generated from reading UI file 'tender.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.8.2
 ##
@@ -15,16 +15,16 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QFormLayout, QFrame, QGroupBox,
-    QHeaderView, QLabel, QLineEdit, QMainWindow,
-    QMenuBar, QPushButton, QSizePolicy, QStatusBar,
-    QTableView, QTextEdit, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QFrame, QGroupBox, QHBoxLayout,
+    QHeaderView, QLabel, QMainWindow, QMenuBar,
+    QPushButton, QSizePolicy, QStatusBar, QTableView,
+    QTextEdit, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(943, 727)
+        MainWindow.resize(962, 722)
         self.NavMenu = QWidget(MainWindow)
         self.NavMenu.setObjectName(u"NavMenu")
         self.Nav_Menu_Container = QFrame(self.NavMenu)
@@ -56,48 +56,41 @@ class Ui_MainWindow(object):
 
         self.TenderDetails = QGroupBox(self.NavMenu)
         self.TenderDetails.setObjectName(u"TenderDetails")
-        self.TenderDetails.setGeometry(QRect(660, 10, 282, 451))
-        self.formLayout = QFormLayout(self.TenderDetails)
-        self.formLayout.setObjectName(u"formLayout")
+        self.TenderDetails.setGeometry(QRect(650, 10, 282, 521))
         self.TenderName = QLabel(self.TenderDetails)
         self.TenderName.setObjectName(u"TenderName")
-
-        self.formLayout.setWidget(0, QFormLayout.LabelRole, self.TenderName)
-
-        self.Date = QLineEdit(self.TenderDetails)
-        self.Date.setObjectName(u"Date")
-
-        self.formLayout.setWidget(1, QFormLayout.LabelRole, self.Date)
-
-        self.TenderDescription = QTextEdit(self.TenderDetails)
-        self.TenderDescription.setObjectName(u"TenderDescription")
-
-        self.formLayout.setWidget(2, QFormLayout.LabelRole, self.TenderDescription)
-
-        self.pushButton = QPushButton(self.TenderDetails)
-        self.pushButton.setObjectName(u"pushButton")
-
-        self.formLayout.setWidget(3, QFormLayout.LabelRole, self.pushButton)
-
-        self.ScrapeTendersButton = QPushButton(self.NavMenu)
-        self.ScrapeTendersButton.setObjectName(u"ScrapeTendersButton")
-        self.ScrapeTendersButton.setGeometry(QRect(160, 590, 88, 24))
-        self.MarkAsInterestedButton = QPushButton(self.NavMenu)
-        self.MarkAsInterestedButton.setObjectName(u"MarkAsInterestedButton")
-        self.MarkAsInterestedButton.setGeometry(QRect(250, 590, 106, 24))
-        self.ExportToPDFButton = QPushButton(self.NavMenu)
-        self.ExportToPDFButton.setObjectName(u"ExportToPDFButton")
-        self.ExportToPDFButton.setGeometry(QRect(360, 590, 81, 24))
+        self.TenderName.setGeometry(QRect(10, 26, 71, 16))
+        self.TenderExpandedInfo = QTextEdit(self.TenderDetails)
+        self.TenderExpandedInfo.setObjectName(u"TenderExpandedInfo")
+        self.TenderExpandedInfo.setGeometry(QRect(10, 50, 261, 461))
         self.TenderList = QTableView(self.NavMenu)
         self.TenderList.setObjectName(u"TenderList")
         self.TenderList.setGeometry(QRect(170, 20, 471, 511))
-        self.AddTenderButton = QPushButton(self.NavMenu)
+        self.widget = QWidget(self.NavMenu)
+        self.widget.setObjectName(u"widget")
+        self.widget.setGeometry(QRect(170, 550, 258, 26))
+        self.horizontalLayout = QHBoxLayout(self.widget)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
+        self.ScrapeTendersButton = QPushButton(self.widget)
+        self.ScrapeTendersButton.setObjectName(u"ScrapeTendersButton")
+
+        self.horizontalLayout.addWidget(self.ScrapeTendersButton)
+
+        self.ExportToPDFButton = QPushButton(self.widget)
+        self.ExportToPDFButton.setObjectName(u"ExportToPDFButton")
+
+        self.horizontalLayout.addWidget(self.ExportToPDFButton)
+
+        self.AddTenderButton = QPushButton(self.widget)
         self.AddTenderButton.setObjectName(u"AddTenderButton")
-        self.AddTenderButton.setGeometry(QRect(450, 590, 75, 24))
+
+        self.horizontalLayout.addWidget(self.AddTenderButton)
+
         MainWindow.setCentralWidget(self.NavMenu)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 943, 22))
+        self.menubar.setGeometry(QRect(0, 0, 962, 33))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -115,10 +108,7 @@ class Ui_MainWindow(object):
         self.pushButton_3.setText(QCoreApplication.translate("MainWindow", u"BOM and Cost Estimator", None))
         self.TenderDetails.setTitle(QCoreApplication.translate("MainWindow", u"GroupBox", None))
         self.TenderName.setText(QCoreApplication.translate("MainWindow", u"Tender Name", None))
-        self.Date.setText(QCoreApplication.translate("MainWindow", u"Date", None))
-        self.pushButton.setText(QCoreApplication.translate("MainWindow", u"View Full Details", None))
         self.ScrapeTendersButton.setText(QCoreApplication.translate("MainWindow", u"Scrape Tenders", None))
-        self.MarkAsInterestedButton.setText(QCoreApplication.translate("MainWindow", u"Mark as Interested", None))
         self.ExportToPDFButton.setText(QCoreApplication.translate("MainWindow", u"Export to PDF", None))
         self.AddTenderButton.setText(QCoreApplication.translate("MainWindow", u"Add Tender", None))
     # retranslateUi
