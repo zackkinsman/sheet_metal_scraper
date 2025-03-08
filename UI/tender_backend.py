@@ -16,8 +16,8 @@ class TenderBackend(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         
-        # CSV file path (stored in the project root)
-        self.csv_file = "filtered_tenders.csv"
+        # CSV file path (stored in the tender_data folder)
+        self.csv_file = "tender_data/filtered_tenders.csv"
         # Load CSV data into a QStandardItemModel
         self.model = self.load_csv_model()
         self.ui.TenderList.setModel(self.model)
@@ -88,17 +88,18 @@ class TenderBackend(QMainWindow):
             self.model = self.load_csv_model()
             self.ui.TenderList.setModel(self.model)
 
-    # def scrape_tenders(self):
-    #     """
-    #     Calls the scraper script to scrape tenders and update the CSV file.
-    #     """
-    #     try:
-    #         subprocess.run(["python", "scraper/scraper.py"], check=True)
-    #         # Reload the model after scraping
-    #         self.model = self.load_csv_model()
-    #         self.ui.TenderList.setModel(self.model)
-    #     except subprocess.CalledProcessError as e:
-    #         print(f"Error occurred while scraping tenders: {e}")
+    def scrape_tenders(self):
+        """
+        Calls the scraper script to scrape tenders and update the CSV file.
+        """
+        try:
+            subprocess.run(["python", "scraper/scraper.py"], check=True)
+            subprocess.run(["python", "scraper/scraper_links.py"], check=True)
+            # Reload the model after scraping
+            self.model = self.load_csv_model()
+            self.ui.TenderList.setModel(self.model)
+        except subprocess.CalledProcessError as e:
+            print(f"Error occurred while scraping tenders: {e}")
 
 def run_ui():
     app = QApplication(sys.argv)

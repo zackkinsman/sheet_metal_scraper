@@ -15,9 +15,10 @@ from reportlab.lib import colors
 
 def setup_driver():
     options = webdriver.ChromeOptions()
-    options.add_argument("--start-maximized")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+    options.add_argument('--headless')  # Run in headless mode
+    options.add_argument('--start-maximized')
+    options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                         'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     driver = webdriver.Chrome(options=options)
     return driver
 
@@ -93,47 +94,18 @@ def search_tenders(driver, keywords):
         # Process only one keyword for now; remove break to iterate through all keywords.
         break
 
-    # Save backup CSV with timestamp
-    current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
-    csv_filename = f"tender_data_{current_datetime}.csv"
+    # Save backup CSV with standardized name
+    csv_filename = "tender_data/tender_data.csv"
     df = pd.DataFrame(all_data)
     df.to_csv(csv_filename, index=False)
     print(f"Backup CSV saved as {csv_filename}")
 
-    # Convert CSV to PDF
-    pdf_filename = f"tender_data_{current_datetime}.pdf"
-    convert_csv_to_pdf(csv_filename, pdf_filename)
-    print(f"PDF file saved as {pdf_filename}")
-
     # Update the persistent last_id file with the latest ID used.
     update_last_id(tender_id)
 
-def convert_csv_to_pdf(csv_filename, pdf_filename):
-    # Read CSV file
-    df = pd.read_csv(csv_filename)
-    data = [df.columns.tolist()] + df.values.tolist()
-
-    # Create PDF document
-    pdf = SimpleDocTemplate(pdf_filename, pagesize=letter)
-    table = Table(data)
-    
-    # Apply simple styling
-    style = TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.gray),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0,0), (-1,0), 12),
-        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-        ('GRID', (0,0), (-1,-1), 1, colors.black),
-    ])
-    table.setStyle(style)
-    elements = [table]
-    pdf.build(elements)
-
 def main():
     driver = setup_driver()
-    keywords = load_keywords("../Tender_Keywords.csv")
+    keywords = load_keywords("c:\\Users\\Zack\\Desktop\\School stuff\\Sheet_Metal_Project\\sheet_metal_scraper\\Tender_Keywords.csv")
 
     try:
         search_tenders(driver, keywords)
