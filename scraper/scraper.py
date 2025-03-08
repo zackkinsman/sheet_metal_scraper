@@ -82,7 +82,6 @@ def search_tenders(driver, keywords):
             row_data = {
                 "id": tender_id,
                 "title": title_cell.text,
-                "description": title_cell.get_attribute("title"),
                 "link": title_cell.get_attribute("href"),
                 "category": cells[1].text,
                 "date_posted": cells[2].text,   # Open/Amendment Date

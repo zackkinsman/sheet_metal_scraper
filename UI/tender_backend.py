@@ -36,6 +36,7 @@ class TenderBackend(QMainWindow):
         Loads the CSV file into a QStandardItemModel.
         """
         df = pd.read_csv(self.csv_file)
+        df = df.drop(columns=['description'])
         model = QStandardItemModel()
         headers = list(df.columns)
         model.setColumnCount(len(headers))
@@ -60,6 +61,7 @@ class TenderBackend(QMainWindow):
                 row_data.append(item.text() if item is not None else "")
             data.append(row_data)
         df = pd.DataFrame(data, columns=headers)
+        df = df.drop(columns=['description'])
         df.to_csv(self.csv_file, index=False)
 
     def export_to_pdf(self):
