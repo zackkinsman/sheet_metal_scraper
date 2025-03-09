@@ -10,7 +10,7 @@ from datetime import datetime
 
 def setup_driver():
     options = webdriver.ChromeOptions()
-    options.add_argument('--headless')  # Run in headless mode
+    options.add_argument('--headless')
     options.add_argument('--start-maximized')
     options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                          'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
@@ -19,7 +19,7 @@ def setup_driver():
 
 def load_keywords(csv_path):
     df = pd.read_csv(csv_path)
-    return df.iloc[:, 1].tolist()  # Selecting the second column for keywords
+    return df.iloc[:, 1].tolist()
 
 def get_last_id():
     """Retrieve the last used tender ID from a file; if the file doesn't exist, return 0."""
