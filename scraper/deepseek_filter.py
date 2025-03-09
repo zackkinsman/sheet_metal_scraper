@@ -1,6 +1,5 @@
 import requests
 import pandas as pd
-from extract_pdf_text import extract_text_from_pdf
 import os
 
 # API details (update if needed)
@@ -56,14 +55,3 @@ def deepseek_filter(tenders):
                 relevant_tenders.append(tender)
 
     return relevant_tenders
-
-if __name__ == "__main__":
-    pdf_path = os.path.join(os.path.dirname(__file__), "..", "tender_data", "tender_csv - tender_data_20250303_195411.pdf")
-    extracted_text = extract_text_from_pdf(pdf_path)
-    tenders = []
-    for line in extracted_text.split('\n'):
-        if line.strip() and ' - ' in line:
-            title, description = line.split(' - ', 1)
-            tenders.append({"title": title, "description": description})
-    filtered_tenders = deepseek_filter(tenders)
-    print(f"Relevant Tenders: {filtered_tenders}")

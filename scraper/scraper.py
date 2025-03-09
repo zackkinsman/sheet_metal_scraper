@@ -8,11 +8,6 @@ import time
 import random
 from datetime import datetime
 
-# Import ReportLab modules for PDF conversion.
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-from reportlab.lib import colors
-
 def setup_driver():
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')  # Run in headless mode
@@ -79,6 +74,9 @@ def search_tenders(driver, keywords):
         for row in rows:
             cells = row.find_elements(By.TAG_NAME, "td")
             title_cell = cells[0].find_element(By.TAG_NAME, "a")
+            organization = cells[4].text
+            if organization == "NATO - North Atlantic Treaty Organization":
+                continue  # Skip this tender
             tender_id += 1  # Increment the ID for each new tender
             row_data = {
                 "id": tender_id,
@@ -87,7 +85,7 @@ def search_tenders(driver, keywords):
                 "category": cells[1].text,
                 "date_posted": cells[2].text,   # Open/Amendment Date
                 "closing_date": cells[3].text,
-                "organization": cells[4].text
+                "organization": organization
             }
             all_data.append(row_data)
 
