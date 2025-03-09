@@ -30,21 +30,32 @@ class TenderBackend(QMainWindow):
         self.ui.ExportToPDFButton.clicked.connect(self.export_to_pdf)
         self.ui.AddTenderButton.clicked.connect(self.open_add_tender_dialog)
         self.ui.ScrapeTendersButton.clicked.connect(self.scrape_tenders)
+        self.ui.TenderList.selectionModel().selectionChanged.connect(self.display_tender_details)
 
     def load_csv_model(self):
         """
         Loads the CSV file into a QStandardItemModel.
         """
         df = pd.read_csv(self.csv_file)
-        df = df.drop(columns=['description'])
         model = QStandardItemModel()
-        headers = list(df.columns)
+        headers = ['title', 'link', 'category', 'date_posted', 'closing_date', 'organization']
         model.setColumnCount(len(headers))
         model.setHorizontalHeaderLabels(headers)
         for _, row in df.iterrows():
             items = [QStandardItem(str(row[col])) for col in headers]
             model.appendRow(items)
+        self.df = df  # Store the dataframe for later use
         return model
+
+    def display_tender_details(self, selected, deselected):
+        """
+        Displays the details of the selected tender in the TenderDetails section.
+        """
+        if selected.indexes():
+            index = selected.indexes()[0].row()
+            tender = self.df.iloc[index]
+            self.ui.TenderName.setText(tender['title'])
+            self.ui.TenderExpandedInfo.setText(tender['Full Description'])
 
     def save_model_to_csv(self):
         """
@@ -61,7 +72,6 @@ class TenderBackend(QMainWindow):
                 row_data.append(item.text() if item is not None else "")
             data.append(row_data)
         df = pd.DataFrame(data, columns=headers)
-        df = df.drop(columns=['description'])
         df.to_csv(self.csv_file, index=False)
 
     def export_to_pdf(self):
