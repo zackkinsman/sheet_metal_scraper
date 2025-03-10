@@ -1,4 +1,5 @@
 import os
+import sys
 import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -7,6 +8,10 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import random
 from datetime import datetime
+
+# Add parent directory to path to import the resource_path function
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from UI import resource_path
 
 def setup_driver():
     options = webdriver.ChromeOptions()
@@ -23,8 +28,9 @@ def load_keywords(csv_path):
 
 def get_last_id():
     """Retrieve the last used tender ID from a file; if the file doesn't exist, return 0."""
-    if os.path.exists("last_id.txt"):
-        with open("last_id.txt", "r") as f:
+    last_id_path = resource_path("last_id.txt")
+    if os.path.exists(last_id_path):
+        with open(last_id_path, "r") as f:
             try:
                 last_id = int(f.read().strip())
             except ValueError:
@@ -35,7 +41,8 @@ def get_last_id():
 
 def update_last_id(last_id):
     """Update the file with the new last used tender ID."""
-    with open("last_id.txt", "w") as f:
+    last_id_path = resource_path("last_id.txt")
+    with open(last_id_path, "w") as f:
         f.write(str(last_id))
 
 def search_tenders(driver, keywords):
@@ -93,7 +100,7 @@ def search_tenders(driver, keywords):
         break
 
     # Save backup CSV with standardized name
-    csv_filename = "tender_data/tender_data.csv"
+    csv_filename = resource_path("tender_data/tender_data.csv")
     df = pd.DataFrame(all_data)
     df.to_csv(csv_filename, index=False)
     print(f"Backup CSV saved as {csv_filename}")
@@ -103,7 +110,7 @@ def search_tenders(driver, keywords):
 
 def main():
     driver = setup_driver()
-    keywords = load_keywords("c:\\Users\\Zack\\Desktop\\School stuff\\Sheet_Metal_Project\\sheet_metal_scraper\\Tender_Keywords.csv")
+    keywords = load_keywords(resource_path("tender_data/Tender_Keywords.csv"))
 
     try:
         search_tenders(driver, keywords)

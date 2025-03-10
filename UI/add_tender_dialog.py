@@ -1,8 +1,9 @@
 import os
 import pandas as pd
 import uuid
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QDateEdit, QPushButton, QComboBox
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QDateEdit, QPushButton, QComboBox, QMessageBox
 from PySide6.QtCore import Qt
+from UI import resource_path
 
 class AddTenderDialog(QDialog):
     def __init__(self, parent=None):
@@ -58,26 +59,26 @@ class AddTenderDialog(QDialog):
         status = self.status_combo.currentText()
 
         if title:
-            file_path = "filtered_tenders.csv"
-            if os.path.exists(file_path):
-                df = pd.read_csv(file_path)
-            else:
-                df = pd.DataFrame(columns=["id", "title", "date_posted", "closing_date", "link", "status"])
+            file_path = resource_path("tender_data/filtered_tenders.csv")
+            if not os.path.exists(file_path):
+                QMessageBox.critical(self, "Error", "Could not find tender data file. Please ensure the application is properly set up.")
+                return
             
-            # Generate a unique hex ID for the manually added tender
-            new_id = uuid.uuid4().hex
-
-            new_row = {
-                "id": new_id,
-                "title": title,
-                "date_posted": date_posted,
-                "closing_date": closing_date,
-                "link": "",
-                "status": status
-            }
-            # Append the new row and save back to CSV
-            df = df.append(new_row, ignore_index=True)
-            df.to_csv(file_path, index=False)
-            self.accept()  # Close dialog on success
+            try:
+                df = pd.read_csv(file_path)
+                new_id = uuid.uuid4().hex
+                new_row = pd.DataFrame([{
+                    "id": new_id,
+                    "title": title,
+                    "date_posted": date_posted,
+                    "closing_date": closing_date,
+                    "link": "",
+                    "status": status
+                }])
+                df = pd.concat([df, new_row], ignore_index=True)
+                df.to_csv(file_path, index=False)
+                self.accept()  # Close dialog on success
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to save tender: {str(e)}")
         else:
-            print("Title is required.")
+            QMessageBox.warning(self, "Validation Error", "Title is required.")

@@ -1,4 +1,5 @@
 import os
+import sys
 import pandas as pd
 import time
 import random
@@ -6,6 +7,10 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Add parent directory to path to import the resource_path function
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from UI import resource_path
 
 def extract_links_from_csv(csv_path):
     df = pd.read_csv(csv_path)
@@ -51,8 +56,8 @@ def scrape_batch(links):
     return descriptions
 
 def main():
-    csv_path = os.path.join(os.path.dirname(__file__), "..", "tender_data", "tender_data.csv")
-    new_csv_path = os.path.join(os.path.dirname(__file__), "..", "tender_data", "tender_data_with_descriptions.csv")
+    csv_path = resource_path("tender_data/tender_data.csv")
+    new_csv_path = resource_path("tender_data/tender_data_with_descriptions.csv")
     
     # Read existing CSV
     df = pd.read_csv(csv_path)

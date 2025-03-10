@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>962</width>
-    <height>722</height>
+    <width>1213</width>
+    <height>774</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,8 +17,8 @@
    <widget class="QFrame" name="Nav_Menu_Container">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>0</y>
+      <x>10</x>
+      <y>30</y>
       <width>158</width>
       <height>104</height>
      </rect>
@@ -62,10 +62,10 @@
    <widget class="QGroupBox" name="TenderDetails">
     <property name="geometry">
      <rect>
-      <x>650</x>
-      <y>10</y>
+      <x>900</x>
+      <y>20</y>
       <width>282</width>
-      <height>521</height>
+      <height>571</height>
      </rect>
     </property>
     <property name="title">
@@ -90,7 +90,7 @@
        <x>10</x>
        <y>50</y>
        <width>261</width>
-       <height>461</height>
+       <height>511</height>
       </rect>
      </property>
     </widget>
@@ -98,18 +98,18 @@
    <widget class="QTableView" name="TenderList">
     <property name="geometry">
      <rect>
-      <x>170</x>
-      <y>20</y>
-      <width>471</width>
-      <height>511</height>
+      <x>190</x>
+      <y>30</y>
+      <width>701</width>
+      <height>561</height>
      </rect>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
-      <x>170</x>
-      <y>550</y>
+      <x>190</x>
+      <y>600</y>
       <width>258</width>
       <height>26</height>
      </rect>
@@ -144,7 +144,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>962</width>
+     <width>1213</width>
      <height>33</height>
     </rect>
    </property>

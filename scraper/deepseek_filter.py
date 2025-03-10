@@ -1,30 +1,36 @@
 import requests
 import pandas as pd
 import os
+import sys
 import json
+
+# Add parent directory to path to import the resource_path function
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from UI import resource_path
 
 # API details (update if needed)
 DEEPSEEK_API_URL = "http://localhost:1234/v1/chat/completions"
-
-# Model details
 MODEL_NAME = "deepseek-r1-distill-qwen-7b"
 
-# Load plant capabilities from a text file
-capabilities_path = os.path.join(os.path.dirname(__file__), "..", "tender_data", "mulgrave_capabilities.txt")
-with open(capabilities_path, "r") as f:
-    PLANT_CAPABILITIES = f.read().strip()
-
-# Path to the tender data with descriptions CSV file
-tender_descriptions_path = os.path.join(os.path.dirname(__file__), "..", "tender_data", "tender_data_with_descriptions.csv")
-
-# Output file paths
-filtered_tenders_path = os.path.join(os.path.dirname(__file__), "..", "tender_data", "filtered_tenders.csv")
-debug_log_path = os.path.join(os.path.dirname(__file__), "..", "tender_data", "filter_debug.log")
+def load_capabilities():
+    """Load plant capabilities from a text file"""
+    capabilities_path = resource_path("tender_data/mulgrave_capabilities.txt")
+    if not os.path.exists(capabilities_path):
+        print("Error: Could not find plant capabilities file.")
+        return None
+    try:
+        with open(capabilities_path, "r") as f:
+            return f.read().strip()
+    except Exception as e:
+        print(f"Error loading plant capabilities: {e}")
+        return None
 
 def load_tender_data():
-    """
-    Load the tender data from the CSV file into a pandas DataFrame
-    """
+    """Load the tender data from the CSV file into a pandas DataFrame"""
+    tender_descriptions_path = resource_path("tender_data/tender_data_with_descriptions.csv")
+    if not os.path.exists(tender_descriptions_path):
+        print("Error: Could not find tender data file.")
+        return pd.DataFrame()
     try:
         df = pd.read_csv(tender_descriptions_path)
         return df
@@ -33,11 +39,13 @@ def load_tender_data():
         return pd.DataFrame()
 
 def write_debug_log(message):
-    """
-    Write debug information to a log file
-    """
-    with open(debug_log_path, "a", encoding='utf-8') as f:
-        f.write(f"{message}\n")
+    """Write debug information to a log file"""
+    debug_log_path = resource_path("tender_data/filter_debug.log")
+    try:
+        with open(debug_log_path, "a", encoding='utf-8') as f:
+            f.write(f"{message}\n")
+    except Exception as e:
+        print(f"Warning: Could not write to debug log: {e}")
 
 def deepseek_filter(tenders):
     """
@@ -45,20 +53,29 @@ def deepseek_filter(tenders):
     Creates a CSV file with all relevant tenders and their full information.
     Returns a list of tenders deemed relevant.
     """
+    # Load plant capabilities
+    PLANT_CAPABILITIES = load_capabilities()
+    if not PLANT_CAPABILITIES:
+        print("Error: Failed to load plant capabilities")
+        return []
+
     relevant_tenders = []
     relevant_ids = []
     
     # Clear previous debug log
-    with open(debug_log_path, "w", encoding='utf-8') as f:
-        f.write("DeepSeek Filter Debug Log\n\n")
+    debug_log_path = resource_path("tender_data/filter_debug.log")
+    try:
+        with open(debug_log_path, "w", encoding='utf-8') as f:
+            f.write("DeepSeek Filter Debug Log\n\n")
+    except Exception as e:
+        print(f"Warning: Could not create debug log: {e}")
     
     # Load full tender data from CSV
     all_tender_data = load_tender_data()
-    
     if all_tender_data.empty:
         print("Error: Could not load tender data with descriptions")
         return []
-    
+
     for tender in tenders:
         # Get tender ID
         tender_id = tender.get('id')
@@ -123,17 +140,17 @@ def deepseek_filter(tenders):
             write_debug_log(f"Exception when calling API: {str(e)}")
             print(f"Error processing tender {tender_id}: {e}")
     
-    # Create filtered CSV with all columns from the original data
+    # Save filtered results
     if relevant_ids:
         filtered_data = all_tender_data[all_tender_data['id'].isin(relevant_ids)]
-        
-        # Debug information about filtered data
-        write_debug_log(f"\nRelevant tenders identified: {relevant_ids}")
-        
-        # Save as CSV
-        filtered_data.to_csv(filtered_tenders_path, index=False)
-        print(f"Found {len(relevant_ids)} relevant tenders. Data saved to {filtered_tenders_path}")
-        write_debug_log(f"CSV saved with {len(relevant_ids)} relevant tenders")
+        filtered_tenders_path = resource_path("tender_data/filtered_tenders.csv")
+        try:
+            filtered_data.to_csv(filtered_tenders_path, index=False)
+            print(f"Found {len(relevant_ids)} relevant tenders. Data saved to {filtered_tenders_path}")
+            write_debug_log(f"CSV saved with {len(relevant_ids)} relevant tenders")
+        except Exception as e:
+            print(f"Error saving filtered tenders: {e}")
+            write_debug_log(f"Error saving filtered tenders: {e}")
     else:
         print("No relevant tenders found.")
         write_debug_log("No relevant tenders found")
@@ -165,4 +182,5 @@ if __name__ == "__main__":
         
         # Print summary
         print(f"\nFinal results: {len(relevant_tenders)} relevant tenders identified out of {len(tenders_to_process)} total tenders.")
+        debug_log_path = resource_path("tender_data/filter_debug.log")
         print(f"Check {debug_log_path} for detailed processing information.")
