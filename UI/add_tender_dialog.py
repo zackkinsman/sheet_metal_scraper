@@ -9,7 +9,7 @@ class AddTenderDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Add New Tender")
-        self.setFixedSize(400, 300)
+        self.setFixedSize(400, 400)  # Made taller to accommodate new fields
 
         layout = QVBoxLayout()
 
@@ -18,6 +18,18 @@ class AddTenderDialog(QDialog):
         self.title_input = QLineEdit()
         layout.addWidget(self.title_label)
         layout.addWidget(self.title_input)
+
+        # Link Input
+        self.link_label = QLabel("Tender Link:")
+        self.link_input = QLineEdit()
+        layout.addWidget(self.link_label)
+        layout.addWidget(self.link_input)
+
+        # Category Input
+        self.category_label = QLabel("Category:")
+        self.category_input = QLineEdit()
+        layout.addWidget(self.category_label)
+        layout.addWidget(self.category_input)
 
         # Open/Amendment Date Picker (stored as date_posted)
         self.date_label = QLabel("Open/Amendment Date:")
@@ -57,6 +69,8 @@ class AddTenderDialog(QDialog):
         date_posted = self.date_picker.date().toString("yyyy-MM-dd")
         closing_date = self.close_date_picker.date().toString("yyyy-MM-dd")
         status = self.status_combo.currentText()
+        link = self.link_input.text()
+        category = self.category_input.text()  # Get category from text input
 
         if title:
             file_path = resource_path("tender_data/filtered_tenders.csv")
@@ -72,7 +86,8 @@ class AddTenderDialog(QDialog):
                     "title": title,
                     "date_posted": date_posted,
                     "closing_date": closing_date,
-                    "link": "",
+                    "link": link,
+                    "category": category,
                     "status": status
                 }])
                 df = pd.concat([df, new_row], ignore_index=True)

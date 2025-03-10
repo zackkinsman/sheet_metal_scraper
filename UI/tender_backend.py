@@ -94,12 +94,58 @@ class TenderBackend(QMainWindow):
         if file_path:
             c = canvas.Canvas(file_path, pagesize=letter)
             width, height = letter
-            c.drawString(100, height - 100, "Tender List")
-            y = height - 150
+            
+            # PDF formatting settings
+            margin_left = 50
+            margin_top = 50
+            max_width = 500  # Maximum width for text
+            line_height = 15
+            y = height - margin_top
+            
+            # Add title
+            c.setFont("Helvetica-Bold", 16)
+            c.drawString(margin_left, y, "Tender List")
+            y -= line_height * 2
+            
+            # Add headers
+            c.setFont("Helvetica-Bold", 12)
+            headers = [self.model.headerData(col, Qt.Horizontal) for col in range(self.model.columnCount())]
+            
+            # Process each row
+            c.setFont("Helvetica", 10)
             for row in range(self.model.rowCount()):
-                text = " | ".join([self.model.item(row, col).text() for col in range(self.model.columnCount())])
-                c.drawString(100, y, text)
-                y -= 20
+                # Check if we need a new page
+                if y < 50:  # Leave margin at bottom
+                    c.showPage()
+                    y = height - margin_top
+                    c.setFont("Helvetica", 10)
+                
+                # Get tender data
+                tender_title = self.model.item(row, 0).text()
+                tender_link = self.model.item(row, 1).text()
+                tender_category = self.model.item(row, 2).text()
+                date_posted = self.model.item(row, 3).text()
+                closing_date = self.model.item(row, 4).text()
+                organization = self.model.item(row, 5).text()
+                
+                # Draw tender information with proper formatting
+                c.setFont("Helvetica-Bold", 11)
+                y -= line_height
+                c.drawString(margin_left, y, f"{tender_title}")
+                
+                c.setFont("Helvetica", 10)
+                y -= line_height
+                c.drawString(margin_left, y, f"Organization: {organization}")
+                y -= line_height
+                c.drawString(margin_left, y, f"Category: {tender_category}")
+                y -= line_height
+                c.drawString(margin_left, y, f"Posted: {date_posted}  |  Closes: {closing_date}")
+                y -= line_height
+                c.drawString(margin_left, y, f"Link: {tender_link}")
+                
+                # Add spacing between entries
+                y -= line_height * 1.5
+            
             c.save()
 
     def open_add_tender_dialog(self):
@@ -117,12 +163,15 @@ class TenderBackend(QMainWindow):
         Calls the scraper script to scrape tenders and update the CSV file.
         """
         try:
-            if not os.path.exists(resource_path("scraper/scraper.py")) or not os.path.exists(resource_path("scraper/scraper_links.py")):
+            if not os.path.exists(resource_path("scraper/scraper.py")) or \
+               not os.path.exists(resource_path("scraper/scraper_links.py")) or \
+               not os.path.exists(resource_path("scraper/deepseek_filter.py")):
                 QMessageBox.critical(self, "Error", "Scraper scripts not found. Please ensure the application is properly set up.")
                 return
                 
             subprocess.run(["python", resource_path("scraper/scraper.py")], check=True)
             subprocess.run(["python", resource_path("scraper/scraper_links.py")], check=True)
+            subprocess.run(["python", resource_path("scraper/deepseek_filter.py")], check=True)
             # Reload the model after scraping
             self.model = self.load_csv_model()
             self.ui.TenderList.setModel(self.model)
