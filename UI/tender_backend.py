@@ -4,6 +4,8 @@ import pandas as pd
 import subprocess
 import threading
 import traceback
+import time
+import importlib.util
 from datetime import datetime
 from PySide6.QtWidgets import QApplication, QMainWindow, QTableView, QDialog, QFileDialog, QMessageBox, QProgressDialog
 from PySide6.QtCore import Qt, QTimer, Signal, QObject
@@ -13,9 +15,6 @@ from UI.add_tender_dialog import AddTenderDialog
 from UI import resource_path
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-
-class ScraperWorkerSignals(QObject):
-    finished = Signal(bool, str)  # Success flag and error message if any
 
 class TenderBackend(QMainWindow):
     def __init__(self):
@@ -217,25 +216,23 @@ class TenderBackend(QMainWindow):
                 QMessageBox.critical(self, "Error", error_msg)
                 return
             
-            # Create a progress dialog
-            progress = QProgressDialog("Scraping tenders...", "Cancel", 0, 0, self)
+            # Create a progress dialog with cancel button
+            progress = QProgressDialog("Initializing scraper...", "Cancel", 0, 100, self)
             progress.setWindowTitle("Scraping Tenders")
             progress.setWindowModality(Qt.WindowModal)
             progress.setMinimumDuration(0)
             progress.setValue(0)
-            progress.setMaximum(0)  # Indeterminate progress
             progress.show()
             
-            # Create signals for our worker thread
-            signals = ScraperWorkerSignals()
-            signals.finished.connect(lambda success, error: self.scraping_finished(success, error, progress))
+            # Add a countdown timer to show in progress dialog
+            self.progress_text = "Initializing..."
+            self.timeout_counter = 0
+            self.update_timer = QTimer(self)
+            self.update_timer.timeout.connect(lambda: self.update_progress_dialog(progress))
+            self.update_timer.start(1000)  # Update every 1 second
             
-            # Start scraping in a background thread
-            threading.Thread(
-                target=self.run_scraper_thread,
-                args=(scripts_to_use, log_file, signals),
-                daemon=True
-            ).start()
+            # Connect cancel button to termination function
+            progress.canceled.connect(self.cancel_scraping)
             
         except Exception as e:
             error_msg = f"Unexpected error while setting up scraping: {str(e)}"
@@ -246,67 +243,44 @@ class TenderBackend(QMainWindow):
             
             QMessageBox.critical(self, "Error", f"{error_msg}")
     
-    def run_scraper_thread(self, scripts_to_use, log_file, signals):
-        """Run the scraper scripts in a background thread."""
-        success = False
-        error_message = ""
+    def update_progress_message(self, message):
+        """Update the progress message text"""
+        self.progress_text = message
+        self.timeout_counter = 0  # Reset timeout counter when progress occurs
+    
+    def update_progress_dialog(self, progress_dialog):
+        """Update the progress dialog with timing information"""
+        self.timeout_counter += 1
         
-        try:
-            with open(log_file, "a") as f:
-                f.write("\n=== Script Execution ===\n")
-                f.write("Attempting to run scraper scripts...\n")
-            
-            # Run each script in order, with no visible window
-            for name in ['scraper.py', 'scraper_links.py', 'deepseek_filter.py']:
-                if name in scripts_to_use:
-                    path = scripts_to_use[name]
-                    with open(log_file, "a") as f:
-                        f.write(f"Running {name} from {path}...\n")
-                    
-                    try:
-                        # Use subprocess but detached from the current console
-                        startupinfo = None
-                        if os.name == 'nt':  # Windows
-                            startupinfo = subprocess.STARTUPINFO()
-                            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                            startupinfo.wShowWindow = 0  # SW_HIDE
-                        
-                        result = subprocess.run(
-                            [sys.executable, path],
-                            capture_output=True,
-                            text=True,
-                            startupinfo=startupinfo,
-                            check=True
-                        )
-                        
-                        with open(log_file, "a") as f:
-                            f.write(f"Output from {name}:\n{result.stdout}\n")
-                            if result.stderr:
-                                f.write(f"Errors from {name}:\n{result.stderr}\n")
-                    except subprocess.CalledProcessError as e:
-                        with open(log_file, "a") as f:
-                            f.write(f"Error running {name}: {e}\n")
-                            f.write(f"Output: {e.stdout}\n")
-                            f.write(f"Error: {e.stderr}\n")
-                        raise
-            
-            with open(log_file, "a") as f:
-                f.write("\n=== SUCCESS ===\n")
-                f.write("All scripts executed successfully\n")
-            
-            success = True
-        except Exception as e:
-            error_message = str(e)
-            with open(log_file, "a") as f:
-                f.write(f"\n=== ERROR ===\n")
-                f.write(f"Error during scraping: {error_message}\n")
-                f.write(traceback.format_exc())
+        # Calculate minutes and seconds
+        minutes = self.timeout_counter // 60
+        seconds = self.timeout_counter % 60
         
-        # Signal the main thread that we're done
-        signals.finished.emit(success, error_message)
+        # Show timeout information along with progress message
+        time_text = f"{minutes:02d}:{seconds:02d}"
+        progress_dialog.setLabelText(f"{self.progress_text}\n\nRunning for: {time_text}")
+        
+        # If we've been running for more than 5 minutes, show warning
+        if self.timeout_counter >= 300:  # 5 minutes
+            progress_dialog.setValue(99)  # Almost done
+            if self.timeout_counter % 60 == 0:  # Once a minute
+                with open(os.path.join(os.path.expanduser("~"), "Desktop", "scraper_error.log"), "a") as f:
+                    f.write(f"\n=== WARNING: Scraping has been running for {minutes} minutes ===\n")
+                    f.write("Script may be stuck. Consider cancelling the operation.\n")
+    
+    def cancel_scraping(self):
+        """Handle cancellation of the scraping process"""
+        self.update_timer.stop()
+        
+        # Log the cancellation
+        with open(os.path.join(os.path.expanduser("~"), "Desktop", "scraper_error.log"), "a") as f:
+            f.write(f"\n=== SCRAPING CANCELLED BY USER after {self.timeout_counter} seconds ===\n")
     
     def scraping_finished(self, success, error_message, progress_dialog):
         """Handle completion of the scraping process."""
+        # Stop the update timer
+        self.update_timer.stop()
+        
         # Close the progress dialog
         progress_dialog.close()
         
@@ -319,7 +293,10 @@ class TenderBackend(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Error reloading tender data: {str(e)}")
         else:
-            QMessageBox.critical(self, "Error", f"Error occurred while scraping tenders: {error_message}")
+            log_path = os.path.join(os.path.expanduser("~"), "Desktop", "scraper_error.log")
+            QMessageBox.critical(self, "Error", 
+                                f"Error occurred while scraping tenders:\n{error_message}\n\n"
+                                f"See the log file for details:\n{log_path}")
 
 def run_ui():
     app = QApplication(sys.argv)
