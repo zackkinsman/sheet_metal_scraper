@@ -93,7 +93,7 @@
  [],
  False,
  False,
- 1741638151,
+ 1741642630,
  [('runw.exe',
    'C:\\Users\\Zack\\Desktop\\School '
    'stuff\\Sheet_Metal_Project\\sheet_metal_scraper\\tenderapp\\Lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit-intel\\runw.exe',

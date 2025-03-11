@@ -2,14 +2,20 @@ import sys
 import os
 import pandas as pd
 import subprocess
-from PySide6.QtWidgets import QApplication, QMainWindow, QTableView, QDialog, QFileDialog, QMessageBox
-from PySide6.QtCore import Qt
+import threading
+import traceback
+from datetime import datetime
+from PySide6.QtWidgets import QApplication, QMainWindow, QTableView, QDialog, QFileDialog, QMessageBox, QProgressDialog
+from PySide6.QtCore import Qt, QTimer, Signal, QObject
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from UI.tender_ui import Ui_MainWindow 
 from UI.add_tender_dialog import AddTenderDialog
 from UI import resource_path
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+
+class ScraperWorkerSignals(QObject):
+    finished = Signal(bool, str)  # Success flag and error message if any
 
 class TenderBackend(QMainWindow):
     def __init__(self):
@@ -160,25 +166,160 @@ class TenderBackend(QMainWindow):
 
     def scrape_tenders(self):
         """
-        Calls the scraper script to scrape tenders and update the CSV file.
+        Calls the scraper script to scrape tenders and update the CSV file in a background thread.
+        Shows a progress dialog while scraping is in progress.
         """
+        # Create log file in the project root directory for easy access
+        desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+        log_file = os.path.join(desktop_path, "scraper_error.log")
+        
         try:
-            if not os.path.exists(resource_path("scraper/scraper.py")) or \
-               not os.path.exists(resource_path("scraper/scraper_links.py")) or \
-               not os.path.exists(resource_path("scraper/deepseek_filter.py")):
-                QMessageBox.critical(self, "Error", "Scraper scripts not found. Please ensure the application is properly set up.")
-                return
+            # Make sure we can write to the log file
+            with open(log_file, "w") as f:
+                f.write(f"=== Scraper Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n")
+            
+            # Debug information to locate the scripts
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            script_paths = {
+                'scraper.py': resource_path("scraper/scraper.py"),
+                'scraper_links.py': resource_path("scraper/scraper_links.py"),
+                'deepseek_filter.py': resource_path("scraper/deepseek_filter.py")
+            }
+            
+            # Direct script paths (fallback option)
+            direct_paths = {
+                'scraper.py': os.path.join(base_dir, "scraper", "scraper.py"),
+                'scraper_links.py': os.path.join(base_dir, "scraper", "scraper_links.py"),
+                'deepseek_filter.py': os.path.join(base_dir, "scraper", "deepseek_filter.py")
+            }
+            
+            # Log path information
+            with open(log_file, "a") as f:
+                f.write("\n=== Path Resolution ===\n")
+                for name, path in script_paths.items():
+                    exists = os.path.exists(path)
+                    f.write(f"  {name}: {path} - Exists: {exists}\n")
                 
-            subprocess.run(["python", resource_path("scraper/scraper.py")], check=True)
-            subprocess.run(["python", resource_path("scraper/scraper_links.py")], check=True)
-            subprocess.run(["python", resource_path("scraper/deepseek_filter.py")], check=True)
-            # Reload the model after scraping
-            self.model = self.load_csv_model()
-            self.ui.TenderList.setModel(self.model)
-        except subprocess.CalledProcessError as e:
-            QMessageBox.critical(self, "Error", f"Error occurred while scraping tenders: {e}")
+            # Use either resource_path resolution or direct paths, whichever works
+            scripts_to_use = {}
+            missing_scripts = []
+            
+            for name, path in script_paths.items():
+                if os.path.exists(path):
+                    scripts_to_use[name] = path
+                elif os.path.exists(direct_paths[name]):
+                    scripts_to_use[name] = direct_paths[name]
+                else:
+                    missing_scripts.append(f"{name}")
+            
+            if missing_scripts:
+                error_msg = f"The following scraper scripts were not found: {', '.join(missing_scripts)}"
+                QMessageBox.critical(self, "Error", error_msg)
+                return
+            
+            # Create a progress dialog
+            progress = QProgressDialog("Scraping tenders...", "Cancel", 0, 0, self)
+            progress.setWindowTitle("Scraping Tenders")
+            progress.setWindowModality(Qt.WindowModal)
+            progress.setMinimumDuration(0)
+            progress.setValue(0)
+            progress.setMaximum(0)  # Indeterminate progress
+            progress.show()
+            
+            # Create signals for our worker thread
+            signals = ScraperWorkerSignals()
+            signals.finished.connect(lambda success, error: self.scraping_finished(success, error, progress))
+            
+            # Start scraping in a background thread
+            threading.Thread(
+                target=self.run_scraper_thread,
+                args=(scripts_to_use, log_file, signals),
+                daemon=True
+            ).start()
+            
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Unexpected error while scraping: {str(e)}")
+            error_msg = f"Unexpected error while setting up scraping: {str(e)}"
+            with open(log_file, "a") as f:
+                f.write(f"\n=== UNEXPECTED ERROR ===\n")
+                f.write(f"{error_msg}\n")
+                f.write(traceback.format_exc())
+            
+            QMessageBox.critical(self, "Error", f"{error_msg}")
+    
+    def run_scraper_thread(self, scripts_to_use, log_file, signals):
+        """Run the scraper scripts in a background thread."""
+        success = False
+        error_message = ""
+        
+        try:
+            with open(log_file, "a") as f:
+                f.write("\n=== Script Execution ===\n")
+                f.write("Attempting to run scraper scripts...\n")
+            
+            # Run each script in order, with no visible window
+            for name in ['scraper.py', 'scraper_links.py', 'deepseek_filter.py']:
+                if name in scripts_to_use:
+                    path = scripts_to_use[name]
+                    with open(log_file, "a") as f:
+                        f.write(f"Running {name} from {path}...\n")
+                    
+                    try:
+                        # Use subprocess but detached from the current console
+                        startupinfo = None
+                        if os.name == 'nt':  # Windows
+                            startupinfo = subprocess.STARTUPINFO()
+                            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                            startupinfo.wShowWindow = 0  # SW_HIDE
+                        
+                        result = subprocess.run(
+                            [sys.executable, path],
+                            capture_output=True,
+                            text=True,
+                            startupinfo=startupinfo,
+                            check=True
+                        )
+                        
+                        with open(log_file, "a") as f:
+                            f.write(f"Output from {name}:\n{result.stdout}\n")
+                            if result.stderr:
+                                f.write(f"Errors from {name}:\n{result.stderr}\n")
+                    except subprocess.CalledProcessError as e:
+                        with open(log_file, "a") as f:
+                            f.write(f"Error running {name}: {e}\n")
+                            f.write(f"Output: {e.stdout}\n")
+                            f.write(f"Error: {e.stderr}\n")
+                        raise
+            
+            with open(log_file, "a") as f:
+                f.write("\n=== SUCCESS ===\n")
+                f.write("All scripts executed successfully\n")
+            
+            success = True
+        except Exception as e:
+            error_message = str(e)
+            with open(log_file, "a") as f:
+                f.write(f"\n=== ERROR ===\n")
+                f.write(f"Error during scraping: {error_message}\n")
+                f.write(traceback.format_exc())
+        
+        # Signal the main thread that we're done
+        signals.finished.emit(success, error_message)
+    
+    def scraping_finished(self, success, error_message, progress_dialog):
+        """Handle completion of the scraping process."""
+        # Close the progress dialog
+        progress_dialog.close()
+        
+        if success:
+            # Reload the model after scraping
+            try:
+                self.model = self.load_csv_model()
+                self.ui.TenderList.setModel(self.model)
+                QMessageBox.information(self, "Success", "Tenders have been scraped and updated successfully.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Error reloading tender data: {str(e)}")
+        else:
+            QMessageBox.critical(self, "Error", f"Error occurred while scraping tenders: {error_message}")
 
 def run_ui():
     app = QApplication(sys.argv)
