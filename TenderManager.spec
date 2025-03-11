@@ -4,9 +4,9 @@
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
+    binaries=[('C:\\Users\\Zack\\Desktop\\School stuff\\Sheet_Metal_Project\\sheet_metal_scraper\\chromedriver-win64\\chromedriver.exe', '.')],
     datas=[('C:\\Users\\Zack\\Desktop\\School stuff\\Sheet_Metal_Project\\sheet_metal_scraper\\tenderapp', '.'), ('C:\\Users\\Zack\\Desktop\\School stuff\\Sheet_Metal_Project\\sheet_metal_scraper\\tender_data', './tender_data'), ('C:\\Users\\Zack\\Desktop\\School stuff\\Sheet_Metal_Project\\sheet_metal_scraper\\scraper', './scraper')],
-    hiddenimports=['PySide6', 'PySide6.QtWidgets', 'PySide6.QtCore', 'PySide6.QtGui'],
+    hiddenimports=['PySide6', 'PySide6.QtWidgets', 'PySide6.QtCore', 'PySide6.QtGui', 'pandas', 'selenium'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

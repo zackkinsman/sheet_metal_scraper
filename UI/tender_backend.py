@@ -168,116 +168,155 @@ class TenderBackend(QMainWindow):
         Calls the scraper script to scrape tenders and update the CSV file in a background thread.
         Shows a progress dialog while scraping is in progress.
         """
-        # Create log file in the project root directory for easy access
+        # Resolve the ChromeDriver path and set it as an environment variable for the scraper
+        chrome_driver_path = resource_path("chromedriver-win64/chromedriver.exe")
+        os.environ["CHROMEDRIVER_PATH"] = chrome_driver_path
+
+        # Create log file on Desktop for easy access
         desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
         log_file = os.path.join(desktop_path, "scraper_error.log")
-        
         try:
-            # Make sure we can write to the log file
             with open(log_file, "w") as f:
                 f.write(f"=== Scraper Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n")
-            
-            # Debug information to locate the scripts
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            script_paths = {
-                'scraper.py': resource_path("scraper/scraper.py"),
-                'scraper_links.py': resource_path("scraper/scraper_links.py"),
-                'deepseek_filter.py': resource_path("scraper/deepseek_filter.py")
-            }
-            
-            # Direct script paths (fallback option)
-            direct_paths = {
-                'scraper.py': os.path.join(base_dir, "scraper", "scraper.py"),
-                'scraper_links.py': os.path.join(base_dir, "scraper", "scraper_links.py"),
-                'deepseek_filter.py': os.path.join(base_dir, "scraper", "deepseek_filter.py")
-            }
-            
-            # Log path information
-            with open(log_file, "a") as f:
-                f.write("\n=== Path Resolution ===\n")
-                for name, path in script_paths.items():
-                    exists = os.path.exists(path)
-                    f.write(f"  {name}: {path} - Exists: {exists}\n")
-                
-            # Use either resource_path resolution or direct paths, whichever works
-            scripts_to_use = {}
-            missing_scripts = []
-            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Cannot write to log file: {str(e)}")
+            return
+
+        # (Optional) Log the ChromeDriver path for debugging
+        with open(log_file, "a") as f:
+            f.write(f"\nChromeDriver Path: {chrome_driver_path}\n")
+        
+        # Resolve paths for your scraper scripts as before
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        script_paths = {
+            'scraper.py': resource_path("scraper/scraper.py"),
+            'scraper_links.py': resource_path("scraper/scraper_links.py"),
+            'deepseek_filter.py': resource_path("scraper/deepseek_filter.py")
+        }
+        direct_paths = {
+            'scraper.py': os.path.join(base_dir, "scraper", "scraper.py"),
+            'scraper_links.py': os.path.join(base_dir, "scraper", "scraper_links.py"),
+            'deepseek_filter.py': os.path.join(base_dir, "scraper", "deepseek_filter.py")
+        }
+        
+        with open(log_file, "a") as f:
+            f.write("\n=== Path Resolution ===\n")
             for name, path in script_paths.items():
-                if os.path.exists(path):
-                    scripts_to_use[name] = path
-                elif os.path.exists(direct_paths[name]):
-                    scripts_to_use[name] = direct_paths[name]
-                else:
-                    missing_scripts.append(f"{name}")
+                exists = os.path.exists(path)
+                f.write(f"  {name}: {path} - Exists: {exists}\n")
+        
+        scripts_to_use = {}
+        missing_scripts = []
+        for name, path in script_paths.items():
+            if os.path.exists(path):
+                scripts_to_use[name] = path
+            elif os.path.exists(direct_paths[name]):
+                scripts_to_use[name] = direct_paths[name]
+            else:
+                missing_scripts.append(name)
+        
+        if missing_scripts:
+            error_msg = f"The following scraper scripts were not found: {', '.join(missing_scripts)}"
+            QMessageBox.critical(self, "Error", error_msg)
+            return
+        
+        # Create a progress dialog with cancel button
+        progress = QProgressDialog("Initializing scraper...", "Cancel", 0, 100, self)
+        progress.setWindowTitle("Scraping Tenders")
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setValue(0)
+        progress.show()
+        
+        # Start a timer to update the progress dialog
+        self.progress_text = "Initializing..."
+        self.timeout_counter = 0
+        self.update_timer = QTimer(self)
+        self.update_timer.timeout.connect(lambda: self.update_progress_dialog(progress))
+        self.update_timer.start(1000)  # Update every second
+        
+        progress.canceled.connect(self.cancel_scraping)
+        
+        # Start the scraping process in a background thread
+        thread = threading.Thread(target=self.run_scraper, args=(scripts_to_use, progress, log_file))
+        thread.start()
+
+    def run_scraper(self, scripts_to_use, progress_dialog, log_file):
+        import subprocess, sys, os
+        try:
+            # Set up environment variables for resource paths
+            env = os.environ.copy()
+            env["TENDER_DATA_PATH"] = resource_path("tender_data")
+            env["LAST_ID_PATH"] = resource_path("last_id.txt")
+            env["KEYWORDS_PATH"] = resource_path("tender_data/Tender_Keywords.csv")
+            env["NO_UI"] = "1"  # Prevent UI initialization in subprocess
             
-            if missing_scripts:
-                error_msg = f"The following scraper scripts were not found: {', '.join(missing_scripts)}"
-                QMessageBox.critical(self, "Error", error_msg)
-                return
+            # Run scripts in sequence
+            script_sequence = ['scraper.py', 'scraper_links.py', 'deepseek_filter.py']
+            success = True
+            error_message = ""
             
-            # Create a progress dialog with cancel button
-            progress = QProgressDialog("Initializing scraper...", "Cancel", 0, 100, self)
-            progress.setWindowTitle("Scraping Tenders")
-            progress.setWindowModality(Qt.WindowModal)
-            progress.setMinimumDuration(0)
-            progress.setValue(0)
-            progress.show()
-            
-            # Add a countdown timer to show in progress dialog
-            self.progress_text = "Initializing..."
-            self.timeout_counter = 0
-            self.update_timer = QTimer(self)
-            self.update_timer.timeout.connect(lambda: self.update_progress_dialog(progress))
-            self.update_timer.start(1000)  # Update every 1 second
-            
-            # Connect cancel button to termination function
-            progress.canceled.connect(self.cancel_scraping)
+            for script_name in script_sequence:
+                self.progress_text = f"Running {script_name}..."
+                result = subprocess.run(
+                    [sys.executable, scripts_to_use[script_name]],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    env=env,
+                    creationflags=subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
+                )
+                
+                # Log stdout and stderr for debugging
+                with open(log_file, "a") as f:
+                    f.write(f"\n=== {script_name} STDOUT ===\n{result.stdout}\n")
+                    f.write(f"\n=== {script_name} STDERR ===\n{result.stderr}\n")
+                
+                if result.returncode != 0:
+                    error_message = f"{script_name} failed with exit status {result.returncode}"
+                    success = False
+                    break
             
         except Exception as e:
-            error_msg = f"Unexpected error while setting up scraping: {str(e)}"
+            success = False
+            error_message = str(e)
             with open(log_file, "a") as f:
-                f.write(f"\n=== UNEXPECTED ERROR ===\n")
-                f.write(f"{error_msg}\n")
-                f.write(traceback.format_exc())
-            
-            QMessageBox.critical(self, "Error", f"{error_msg}")
-    
-    def update_progress_message(self, message):
-        """Update the progress message text"""
-        self.progress_text = message
-        self.timeout_counter = 0  # Reset timeout counter when progress occurs
-    
-    def update_progress_dialog(self, progress_dialog):
-        """Update the progress dialog with timing information"""
-        self.timeout_counter += 1
+                f.write(f"\nException while running scraper: {error_message}\n")
         
-        # Calculate minutes and seconds
+        # Finish progress on the main thread
+        QTimer.singleShot(0, lambda: self.scraping_finished(success, error_message, progress_dialog))
+
+    def update_progress_dialog(self, progress_dialog):
+        """
+        Updates the progress dialog with elapsed time information.
+        """
+        self.timeout_counter += 1
         minutes = self.timeout_counter // 60
         seconds = self.timeout_counter % 60
-        
-        # Show timeout information along with progress message
         time_text = f"{minutes:02d}:{seconds:02d}"
         progress_dialog.setLabelText(f"{self.progress_text}\n\nRunning for: {time_text}")
-        
-        # If we've been running for more than 5 minutes, show warning
-        if self.timeout_counter >= 300:  # 5 minutes
-            progress_dialog.setValue(99)  # Almost done
-            if self.timeout_counter % 60 == 0:  # Once a minute
-                with open(os.path.join(os.path.expanduser("~"), "Desktop", "scraper_error.log"), "a") as f:
+        if self.timeout_counter >= 300:
+            progress_dialog.setValue(99)
+            if self.timeout_counter % 60 == 0:
+                desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+                log_file = os.path.join(desktop_path, "scraper_error.log")
+                with open(log_file, "a") as f:
                     f.write(f"\n=== WARNING: Scraping has been running for {minutes} minutes ===\n")
-                    f.write("Script may be stuck. Consider cancelling the operation.\n")
-    
+
     def cancel_scraping(self):
-        """Handle cancellation of the scraping process"""
+        """
+        Handles user cancellation of the scraping process.
+        """
         self.update_timer.stop()
-        
-        # Log the cancellation
-        with open(os.path.join(os.path.expanduser("~"), "Desktop", "scraper_error.log"), "a") as f:
+        desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+        log_file = os.path.join(desktop_path, "scraper_error.log")
+        with open(log_file, "a") as f:
             f.write(f"\n=== SCRAPING CANCELLED BY USER after {self.timeout_counter} seconds ===\n")
-    
+
     def scraping_finished(self, success, error_message, progress_dialog):
-        """Handle completion of the scraping process."""
+        """
+        Handle completion of the scraping process.
+        """
         # Stop the update timer
         self.update_timer.stop()
         
@@ -295,8 +334,8 @@ class TenderBackend(QMainWindow):
         else:
             log_path = os.path.join(os.path.expanduser("~"), "Desktop", "scraper_error.log")
             QMessageBox.critical(self, "Error", 
-                                f"Error occurred while scraping tenders:\n{error_message}\n\n"
-                                f"See the log file for details:\n{log_path}")
+                               f"Error occurred while scraping tenders:\n{error_message}\n\n"
+                               f"See the log file for details:\n{log_path}")
 
 def run_ui():
     app = QApplication(sys.argv)

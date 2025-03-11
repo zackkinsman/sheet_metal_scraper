@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import traceback
+import time
 from datetime import datetime
 
 # Add parent directory to path to import the resource_path function
@@ -93,49 +94,61 @@ def deepseek_filter(tenders):
         log_error("Error: Could not load tender data with descriptions")
         raise ValueError("Could not load tender data with descriptions")
 
-    # Test API connectivity before starting the loop
-    try:
-        test_payload = {
-            "model": MODEL_NAME,
-            "messages": [{"role": "system", "content": "Test message"}],
-            "temperature": 0.3
-        }
-        response = requests.post(DEEPSEEK_API_URL, json=test_payload, timeout=5)
-        if response.status_code != 200:
-            log_error(f"API connectivity test failed with status {response.status_code}")
-            write_debug_log(f"API connectivity test failed: {response.text}")
-            raise ConnectionError(f"API connectivity test failed with status {response.status_code}")
-        else:
-            log_error("API connectivity test successful")
-    except Exception as e:
-        log_error(f"API connectivity test failed with exception: {str(e)}")
-        write_debug_log(f"API connectivity test exception: {str(e)}")
-        raise
+    # Initialize API status
+    api_available = False
+    max_retries = 3
+    retry_delay = 10  # seconds
 
+    for retry in range(max_retries):
+        try:
+            test_payload = {
+                "model": MODEL_NAME,
+                "messages": [{"role": "system", "content": "Test message"}],
+                "temperature": 0.3
+            }
+            response = requests.post(DEEPSEEK_API_URL, json=test_payload, timeout=5)
+            if response.status_code == 200:
+                api_available = True
+                log_error("API connectivity test successful")
+                break
+            else:
+                log_error(f"API test failed (attempt {retry + 1}/{max_retries}): Status {response.status_code}")
+        except Exception as e:
+            log_error(f"API test failed (attempt {retry + 1}/{max_retries}): {str(e)}")
+            if retry < max_retries - 1:
+                log_error(f"Waiting {retry_delay} seconds before retry...")
+                time.sleep(retry_delay)
+
+    if not api_available:
+        log_error("WARNING: DeepSeek AI filtering unavailable. Processing without AI filtering.")
+        # Save all tenders to filtered output without AI processing
+        filtered_tenders_path = resource_path("tender_data/filtered_tenders.csv")
+        try:
+            all_tender_data.to_csv(filtered_tenders_path, index=False)
+            log_error(f"Saved all {len(all_tender_data)} tenders without filtering to {filtered_tenders_path}")
+            return tenders
+        except Exception as e:
+            log_error(f"Error saving unfiltered tenders: {e}")
+            raise
+
+    # Continue with AI filtering if API is available
     for tender in tenders:
-        # Get tender ID
         tender_id = tender.get('id')
-        
-        # Find this tender in the full data
         tender_row = all_tender_data[all_tender_data['id'] == tender_id]
         
         if not tender_row.empty:
-            # Get full description from the dataframe
             full_description = tender_row['Full Description'].iloc[0]
             tender_title = tender_row['title'].iloc[0]
         else:
-            # Fallback to tender object if not found in CSV
             full_description = tender.get('description', "")
             tender_title = tender.get('title', "")
         
-        # Prepare text for assessment
         tender_text = f"Title: {tender_title}\nDescription: {full_description}"
 
-        # Construct prompt
         prompt = f"""
         A manufacturing plant has the following capabilities:
         {PLANT_CAPABILITIES}
-
+        
         Based on this, determine if the following tender is RELEVANT to the plant. 
         Respond with exactly one word: RELEVANT or NOT RELEVANT.
 
@@ -143,17 +156,16 @@ def deepseek_filter(tenders):
         {tender_text}
         """
 
-        # DeepSeek API request
-        payload = {
-            "model": MODEL_NAME,
-            "messages": [{"role": "system", "content": "You analyze tenders for relevance."},
-                         {"role": "user", "content": prompt}],
-            "temperature": 0.3
-        }
-
-        write_debug_log(f"Processing tender ID: {tender_id} - {tender_title}")
-        
         try:
+            payload = {
+                "model": MODEL_NAME,
+                "messages": [{"role": "system", "content": "You analyze tenders for relevance."},
+                            {"role": "user", "content": prompt}],
+                "temperature": 0.3
+            }
+
+            write_debug_log(f"Processing tender ID: {tender_id} - {tender_title}")
+            
             response = requests.post(DEEPSEEK_API_URL, json=payload, timeout=30)
             write_debug_log(f"API Response status: {response.status_code}")
             
@@ -162,7 +174,6 @@ def deepseek_filter(tenders):
                 ai_response = result['choices'][0]['message']['content'].strip()
                 write_debug_log(f"Raw AI response: '{ai_response}'")
                 
-                # More flexible matching - check if the response contains "RELEVANT"
                 if "RELEVANT" in ai_response.upper() and "NOT RELEVANT" not in ai_response.upper():
                     write_debug_log(f"Tender {tender_id} marked as RELEVANT")
                     relevant_ids.append(tender_id)
@@ -170,41 +181,36 @@ def deepseek_filter(tenders):
                 else:
                     write_debug_log(f"Tender {tender_id} marked as NOT RELEVANT")
             else:
-                write_debug_log(f"Error: API returned status code {response.status_code}")
-                write_debug_log(f"Response content: {response.text}")
-                raise ConnectionError(f"API returned status code {response.status_code}")
+                # If API fails during processing, mark tender as relevant to avoid missing opportunities
+                write_debug_log(f"API error for tender {tender_id} - marking as potentially relevant")
+                relevant_ids.append(tender_id)
+                relevant_tenders.append(tender)
+
         except Exception as e:
-            write_debug_log(f"Exception when calling API: {str(e)}")
+            write_debug_log(f"Exception when processing tender {tender_id}: {str(e)}")
             log_error(f"Error processing tender {tender_id}: {e}")
-            raise
+            # Include tender if there's an error to avoid missing opportunities
+            relevant_ids.append(tender_id)
+            relevant_tenders.append(tender)
     
     # Save filtered results
-    if relevant_ids:
-        filtered_data = all_tender_data[all_tender_data['id'].isin(relevant_ids)]
-        filtered_tenders_path = resource_path("tender_data/filtered_tenders.csv")
-        try:
+    filtered_tenders_path = resource_path("tender_data/filtered_tenders.csv")
+    try:
+        if relevant_ids:
+            filtered_data = all_tender_data[all_tender_data['id'].isin(relevant_ids)]
             filtered_data.to_csv(filtered_tenders_path, index=False)
             log_error(f"Found {len(relevant_ids)} relevant tenders. Data saved to {filtered_tenders_path}")
             write_debug_log(f"CSV saved with {len(relevant_ids)} relevant tenders")
-        except Exception as e:
-            log_error(f"Error saving filtered tenders: {e}")
-            write_debug_log(f"Error saving filtered tenders: {e}")
-            raise
-    else:
-        log_error("No relevant tenders found.")
-        write_debug_log("No relevant tenders found")
-        
-        # If no relevant tenders were found, create an empty filtered CSV
-        filtered_tenders_path = resource_path("tender_data/filtered_tenders.csv")
-        try:
-            # Create a minimal version with required columns
+        else:
+            # Create empty filtered CSV if no relevant tenders
             empty_df = pd.DataFrame(columns=all_tender_data.columns)
             empty_df.to_csv(filtered_tenders_path, index=False)
+            log_error("No relevant tenders found.")
             write_debug_log("Created empty filtered CSV as no tenders matched")
-        except Exception as e:
-            log_error(f"Error creating empty filtered CSV: {e}")
-            raise
-    
+    except Exception as e:
+        log_error(f"Error saving filtered results: {e}")
+        raise
+
     return relevant_tenders
 
 # Standalone script functionality

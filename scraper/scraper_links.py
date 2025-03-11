@@ -73,7 +73,10 @@ def setup_driver():
                     break
             
             if not chromedriver_path:
-                f.write("WARNING: ChromeDriver not found in expected locations!\n")
+                f.write("ERROR: ChromeDriver not found in expected locations!\n")
+                raise FileNotFoundError("ChromeDriver not found in expected locations.")
+            
+            f.write(f"Attempting to create ChromeDriver with service path: {chromedriver_path}\n")
         
         options = webdriver.ChromeOptions()
         
@@ -91,18 +94,10 @@ def setup_driver():
         options.add_argument('--start-maximized')
         options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
         
-        # Log the ChromeDriver creation attempt
-        with open(log_file, "a") as f:
-            f.write(f"Attempting to create ChromeDriver with service path: {chromedriver_path if chromedriver_path else 'Default'}\n")
-            
-        # Try to create the driver with the specific chromedriver path if available
-        if chromedriver_path:
-            from selenium.webdriver.chrome.service import Service
-            service = Service(executable_path=chromedriver_path)
-            driver = webdriver.Chrome(service=service, options=options)
-        else:
-            # Fall back to letting Selenium find ChromeDriver itself (likely to fail in PyInstaller bundle)
-            driver = webdriver.Chrome(options=options)
+        # Try to create the driver with the specific chromedriver path
+        from selenium.webdriver.chrome.service import Service
+        service = Service(executable_path=chromedriver_path)
+        driver = webdriver.Chrome(service=service, options=options)
         
         with open(log_file, "a") as f:
             f.write("ChromeDriver created successfully!\n")
@@ -133,8 +128,8 @@ def scrape_tender_details(url):
         if driver:
             try:
                 driver.quit()
-            except:
-                pass
+            except Exception as e:
+                log_error(f"Error quitting driver for {url}: {str(e)}")
     return description
 
 def scrape_batch(links):
