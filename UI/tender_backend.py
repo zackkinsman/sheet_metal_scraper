@@ -38,13 +38,31 @@ class TenderBackend(QMainWindow):
             QMessageBox.critical(self, "Error", f"Failed to load tender data: {str(e)}")
             sys.exit(1)
 
-        # Connect UI Buttons
+        # Connect UI Buttons for tender page
         self.ui.ExportToPDFButton.clicked.connect(self.export_to_pdf)
         self.ui.AddTenderButton.clicked.connect(self.open_add_tender_dialog)
         self.ui.ScrapeTendersButton.clicked.connect(self.scrape_tenders)
         self.ui.TenderList.selectionModel().selectionChanged.connect(self.display_tender_details)
         
+        # Connect navigation buttons
+        self.ui.Tender_Button.clicked.connect(lambda: self.ui.PagePicker.setCurrentIndex(0))
+        self.ui.AI_Analysis_Button.clicked.connect(lambda: self.ui.PagePicker.setCurrentIndex(1))
+        self.ui.pushButton_3.clicked.connect(self.not_implemented_yet)
+        
+        # Connect AI Analysis page buttons (just placeholders for now)
+        self.ui.UploadFileButton.clicked.connect(self.not_implemented_yet)
+        self.ui.ExportToPDFButton_2.clicked.connect(self.not_implemented_yet)
+        
+        # Start with tender page (page 0)
+        self.ui.PagePicker.setCurrentIndex(0)
+        
         self.show()
+
+    def not_implemented_yet(self):
+        """
+        Display a message for functionality that's not yet implemented
+        """
+        QMessageBox.information(self, "Not Implemented", "This functionality is not yet implemented.")
 
     def load_csv_model(self):
         """
