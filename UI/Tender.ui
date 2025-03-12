@@ -69,7 +69,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="page">
      <widget class="QTableView" name="TenderList">
@@ -169,29 +169,6 @@
        <enum>QFrame::Shadow::Raised</enum>
       </property>
      </widget>
-     <widget class="QPushButton" name="UploadFileButton">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>280</y>
-        <width>75</width>
-        <height>24</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Upload</string>
-      </property>
-     </widget>
-     <widget class="QListView" name="FileList">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>20</y>
-        <width>211</width>
-        <height>161</height>
-       </rect>
-      </property>
-     </widget>
      <widget class="QProgressBar" name="ProcessProgress">
       <property name="geometry">
        <rect>
@@ -218,17 +195,47 @@
        <bool>true</bool>
       </property>
      </widget>
-     <widget class="QPushButton" name="ExportToPDFButton_2">
+     <widget class="QWidget" name="layoutWidget">
       <property name="geometry">
        <rect>
-        <x>90</x>
+        <x>10</x>
         <y>280</y>
-        <width>75</width>
-        <height>24</height>
+        <width>211</width>
+        <height>26</height>
        </rect>
       </property>
-      <property name="text">
-       <string>Export</string>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QPushButton" name="UploadFileButton">
+         <property name="text">
+          <string>Upload</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="ExportToPDFButton_2">
+         <property name="text">
+          <string>Export</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="ProcessTenderButton">
+         <property name="text">
+          <string>Process</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QListWidget" name="FileList">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>20</y>
+        <width>211</width>
+        <height>161</height>
+       </rect>
       </property>
      </widget>
     </widget>

@@ -23,6 +23,10 @@ else:
         return get_path("TENDER_DATA_PATH", relative_path)
 
 def setup_driver():
+    # Print the ChromeDriver path from environment for debugging
+    chromedriver_env_path = os.getenv("CHROMEDRIVER_PATH")
+    print(f"ChromeDriver path from environment: {chromedriver_env_path}")
+    
     # Try to detect Chrome location
     chrome_paths = [
         os.path.expandvars("%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe"),
@@ -37,17 +41,25 @@ def setup_driver():
             break
     
     # Find chromedriver.exe - check bundled location first, then fallback to project root
-    chromedriver_paths = [
-        get_path("CHROMEDRIVER_PATH", "chromedriver-win64/chromedriver.exe"),
-        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "chromedriver-win64", "chromedriver.exe"),
-        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "chromedriver.exe"),
-    ]
-    
-    chromedriver_path = None
-    for path in chromedriver_paths:
-        if os.path.exists(path):
-            chromedriver_path = path
-            break
+    if chromedriver_env_path and os.path.exists(chromedriver_env_path):
+        chromedriver_path = chromedriver_env_path
+        print(f"Using ChromeDriver from environment variable: {chromedriver_path}")
+    else:
+        # Try all possible locations
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        chromedriver_paths = [
+            os.path.join(base_dir, "chromedriver-win64", "chromedriver.exe"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "chromedriver-win64", "chromedriver.exe"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "chromedriver.exe"),
+        ]
+        
+        chromedriver_path = None
+        for path in chromedriver_paths:
+            print(f"Checking for ChromeDriver at: {path}")
+            if os.path.exists(path):
+                chromedriver_path = path
+                print(f"Found ChromeDriver at: {path}")
+                break
     
     if not chromedriver_path:
         raise FileNotFoundError("ChromeDriver not found. Please ensure it is bundled correctly.")

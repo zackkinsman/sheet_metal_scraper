@@ -16,10 +16,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QFrame, QGroupBox, QHBoxLayout,
-    QHeaderView, QLabel, QListView, QMainWindow,
-    QMenuBar, QProgressBar, QPushButton, QSizePolicy,
-    QStackedWidget, QStatusBar, QTableView, QTextEdit,
-    QVBoxLayout, QWidget)
+    QHeaderView, QLabel, QListWidget, QListWidgetItem,
+    QMainWindow, QMenuBar, QProgressBar, QPushButton,
+    QSizePolicy, QStackedWidget, QStatusBar, QTableView,
+    QTextEdit, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -101,12 +101,6 @@ class Ui_MainWindow(object):
         self.DragAndDropFiles.setGeometry(QRect(10, 190, 211, 80))
         self.DragAndDropFiles.setFrameShape(QFrame.Shape.StyledPanel)
         self.DragAndDropFiles.setFrameShadow(QFrame.Shadow.Raised)
-        self.UploadFileButton = QPushButton(self.page_2)
-        self.UploadFileButton.setObjectName(u"UploadFileButton")
-        self.UploadFileButton.setGeometry(QRect(10, 280, 75, 24))
-        self.FileList = QListView(self.page_2)
-        self.FileList.setObjectName(u"FileList")
-        self.FileList.setGeometry(QRect(10, 20, 211, 161))
         self.ProcessProgress = QProgressBar(self.page_2)
         self.ProcessProgress.setObjectName(u"ProcessProgress")
         self.ProcessProgress.setGeometry(QRect(10, 310, 201, 21))
@@ -115,9 +109,30 @@ class Ui_MainWindow(object):
         self.AnalysisResults.setObjectName(u"AnalysisResults")
         self.AnalysisResults.setGeometry(QRect(250, 20, 601, 601))
         self.AnalysisResults.setReadOnly(True)
-        self.ExportToPDFButton_2 = QPushButton(self.page_2)
+        self.layoutWidget1 = QWidget(self.page_2)
+        self.layoutWidget1.setObjectName(u"layoutWidget1")
+        self.layoutWidget1.setGeometry(QRect(10, 280, 211, 26))
+        self.horizontalLayout_2 = QHBoxLayout(self.layoutWidget1)
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.UploadFileButton = QPushButton(self.layoutWidget1)
+        self.UploadFileButton.setObjectName(u"UploadFileButton")
+
+        self.horizontalLayout_2.addWidget(self.UploadFileButton)
+
+        self.ExportToPDFButton_2 = QPushButton(self.layoutWidget1)
         self.ExportToPDFButton_2.setObjectName(u"ExportToPDFButton_2")
-        self.ExportToPDFButton_2.setGeometry(QRect(90, 280, 75, 24))
+
+        self.horizontalLayout_2.addWidget(self.ExportToPDFButton_2)
+
+        self.ProcessTenderButton = QPushButton(self.layoutWidget1)
+        self.ProcessTenderButton.setObjectName(u"ProcessTenderButton")
+
+        self.horizontalLayout_2.addWidget(self.ProcessTenderButton)
+
+        self.FileList = QListWidget(self.page_2)
+        self.FileList.setObjectName(u"FileList")
+        self.FileList.setGeometry(QRect(10, 20, 211, 161))
         self.PagePicker.addWidget(self.page_2)
         MainWindow.setCentralWidget(self.NavMenu)
         self.menubar = QMenuBar(MainWindow)
@@ -130,7 +145,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.PagePicker.setCurrentIndex(0)
+        self.PagePicker.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -148,5 +163,6 @@ class Ui_MainWindow(object):
         self.AddTenderButton.setText(QCoreApplication.translate("MainWindow", u"Add Tender", None))
         self.UploadFileButton.setText(QCoreApplication.translate("MainWindow", u"Upload", None))
         self.ExportToPDFButton_2.setText(QCoreApplication.translate("MainWindow", u"Export", None))
+        self.ProcessTenderButton.setText(QCoreApplication.translate("MainWindow", u"Process", None))
     # retranslateUi
 

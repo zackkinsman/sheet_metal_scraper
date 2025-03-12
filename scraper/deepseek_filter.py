@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import time
+import re
 from datetime import datetime
 
 # Add parent directory to path to import the resource_path function
@@ -32,6 +33,17 @@ def load_tender_data():
         return pd.read_csv(tender_data_path)
     except Exception:
         return None
+
+def extract_yes_no(content):
+    """Extract just the final yes/no answer from the model's response"""
+    # Remove any <think> tags and their contents
+    content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
+    
+    # Match literal "yes" or "no" (case insensitive)
+    match = re.search(r'\b(yes|no)\b', content.lower())
+    if match:
+        return match.group(0)
+    return content.strip().lower()
 
 def deepseek_filter(tenders):
     capabilities = load_capabilities()
@@ -77,7 +89,8 @@ Company Capabilities:
             if response.status_code == 200:
                 result = response.json()
                 print(f"API Response: {result}")
-                answer = result['choices'][0]['message']['content'].strip().lower()
+                content = result['choices'][0]['message']['content']
+                answer = extract_yes_no(content)
                 
                 if answer == 'yes':
                     filtered_tenders.append(tender)
